@@ -38,6 +38,13 @@ separately.  Do do this:
    src/bin/docker-tunnel.sh```
 5. Start the repl to your example program: ```bash lein repl```
 
+Example
+-------
+See the [example repo](https://github.com/plandes/clj-example-nlp-ml) that
+illustrates how to use this library and contains the code from these examples
+originate.  It's highly recommended to clone it and follow along as you peruse
+this README.
+
 Usage
 -----
 First create a namespace to use as your *database* library.
