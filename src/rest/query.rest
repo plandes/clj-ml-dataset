@@ -1,0 +1,39 @@
+## query test
+
+# meta
+GET http://localhost:9200/example/_mapping
+
+# all
+POST http://localhost:9200/example/instances/_search
+{
+    "query": { "match_all": {}}
+}
+
+# ids
+POST http://localhost:9200/example/instances/_search
+{
+    "query": { "match_all": {}},
+    "from": 0,
+    "size": 9999
+}
+
+# by ID
+GET http://localhost:9200/example/instances/14
+{
+    "query": { "match_all": {}},
+    "fields": [],
+    "from": 0,
+    "size": 9999
+}
+
+## states
+# by ID
+GET http://localhost:9200/example/stats/_search
+{
+    "query": { "match_all": {}},
+    "from": 0,
+    "size": 9999
+}
+
+# remove stats
+#DELETE http://localhost:9200/example/stats/_mapping
