@@ -164,10 +164,13 @@ probably want use the more client friendly [[zensols.dataset.db]]."
          (esrsp/total-hits))))
 
 (defn document-ids
-  []
-  (->> (search {:query (q/match-all)
-                :fields []})
-       (map :id)))
+  "Return document IDs only.  The query default to `match_all`."
+  ([]
+   (document-ids (q/match-all)))
+  ([query]
+   (->> (search {:query query
+                 :fields []})
+        (map :id))))
 
 (defn documents
   "Return all documents as a lazy sequence."
