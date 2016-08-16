@@ -176,3 +176,19 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   "Return all documents as a lazy sequence."
   []
   (search {:query (q/match-all)}))
+
+(defn buckets
+  "Do an aggregation search and bucket **by-field**.
+
+  Return maps with keys:
+
+  * **:name** value of name given by **by-field**
+  * **:count** the count of the bucket"
+  [by-field]
+  (let [search-key :bucket_key
+        query {:aggs {search-key
+                      {:terms {:field by-field :size 0}}}
+               :size 0}]
+    (->> (search-literal query)
+         :aggregations search-key :buckets
+         (map #(rename-keys % {:key :name :doc_count :count})))))
