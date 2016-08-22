@@ -340,12 +340,17 @@ Example
   "Divide the dataset into a test and training *buckets*.
 
   * **train-ratio** this is the percentage of data in the train bucket, which
-  defaults to `0.5`"
+  defaults to `0.5`
+
+  Keys
+  ----
+  * **:shuffle?** if `true` then shuffle the set before partitioning, otherwise
+  just update the *demarcation* boundary"
   ([]
    (divide-by-set 0.5))
-  ([train-ratio]
+  ([train-ratio & {:keys [shuffle?] :or {shuffle? true}}]
    (use-connection
-     (let [ids (->> (db-ids) shuffle)
+     (let [ids (->> (db-ids) ((if shuffle? shuffle identity)))
            sz (count ids)
            train-count (* train-ratio sz)
            id-data (->> {:train-test {:train (take train-count ids)
