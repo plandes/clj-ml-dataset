@@ -155,6 +155,15 @@ probably want use the more client friendly [[zensols.dataset.db]]."
                  (select-keys [:_id :_source])
                  (rename-keys {:_id :id :_source :doc})))))
 
+(defn aggregation
+  [agg-query]
+  (let [term-name :agg-name
+        query {:aggregations {term-name agg-query}
+               :size 0}]
+    (-> (search-literal query)
+        (esrsp/aggregation-from term-name)
+        :buckets)))
+
 (defn document-count
   "Return the total number of documents in the DB."
   []

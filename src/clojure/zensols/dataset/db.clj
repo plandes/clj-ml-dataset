@@ -370,10 +370,10 @@ Example
   See [[set-fold]]"
   ([]
    (divide-by-fold 10))
-  ([folds]
+  ([folds & {:keys [shuffle?] :or {shuffle? true}}]
    (use-connection
      (let [id-data (-> (create-id-list)
-                       (shuffle)
+                       ((if shuffle? shuffle identity))
                        (create-id-data folds))]
        (reset! ids-inst id-data)
        (log/infof "shuffled: %s" (stats))
