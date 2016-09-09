@@ -27,10 +27,9 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   * **:url** the URL to the DB (defaults to `http://localhost:9200`)
   * **:mapping-type-defs** metadata (see ES docs)"
   [index-name mapping-type
-                      & {:keys [url mapping-type-defs settings]
-                         :or {url "http://localhost:9200"
-                              mapping-type-defs {:properties {mapping-type {}}}
-                              }}]
+   & {:keys [url mapping-type-defs settings]
+      :or {url "http://localhost:9200"
+           mapping-type-defs {:properties {mapping-type {}}}}}]
   {:index-name index-name
    :mapping-type mapping-type
    :mapping-type-defs mapping-type-defs
@@ -45,8 +44,8 @@ probably want use the more client friendly [[zensols.dataset.db]]."
 (defmacro with-context
   "Execute a body with the form (with-context [context <keys>] ...)
 
-* **context** is created with [[create-context]]
-* **keys...** option keys to override what was giving in [[create-context]]"
+  * **context** is created with [[create-context]]
+  * **keys...** option keys to override what was giving in [[create-context]]"
   {:style/indent 1}
   [exprs & forms]
   (let [[raw-context- & ckeys-] exprs]
@@ -55,7 +54,7 @@ probably want use the more client friendly [[zensols.dataset.db]]."
        (binding [*context* context#]
          ~@forms))))
 
-(defn context-nil? []
+(defn- context-nil? []
   (let [cnil? (nil? *context*)]
     (log/debugf "context nil?: %s" cnil?)
     cnil?))
@@ -83,11 +82,13 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   "Delete an Elasticsearch index."
   []
   (let [{:keys [index-name]} (context)]
+    (log/infof "deleting index %s (if exists)" index-name)
     (esi/delete (connection) index-name)))
 
 (defn recreate-index
   "Delete an then create Elasticsearch index."
   []
+  (log/info "reindexing")
   (delete-index)
   (create-index))
 

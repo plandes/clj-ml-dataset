@@ -29,7 +29,7 @@ See [[ids]] for more information."
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
             [clojure.pprint :refer (pprint)])
-  (:require [zensols.actioncli.dynamic :refer (dyn-init-var) :as dyn]
+  (:require [zensols.actioncli.dynamic :refer (defa) :as dyn]
             [zensols.actioncli.log4j2 :as lu]
             [zensols.dataset.elsearch :refer (with-context) :as es]))
 
@@ -49,6 +49,13 @@ is also a function that is used to load utterance in the DB; this function
 takes the following forms:
     * (fn [instance class-label] ...
     * (fn [id instance class-label] ...
+    * (fn [id instance class-label set-type] ...
+        * **id** the unique identifier of the data point
+        * **instance** is the data set instance (can be an `N`-deep map)
+        * **class-label** the label of the class (can be nominal, double, integer)
+        * **set-type** either `:test` or `:train` used to presort the data
+        with [[divide-by-preset]]
+  * **:url** the URL to the DB (defaults to `http://localhost:9200`)
 
 Example
 -------
@@ -61,20 +68,23 @@ Example
     (elasticsearch-connection \"tmp\" :create-instances-fn load-fn)))
 ```"
   [index-name &
-   {:keys [create-instances-fn population-use set-type]
+   {:keys [create-instances-fn population-use set-type url]
     :or {create-instances-fn identity
          population-use 1.0
-         set-type :train}}]
+         set-type :train
+         url "http://localhost:9200"}}]
   {:ids-inst (atom nil)
    :default-set-type (atom set-type)
    :population-use (atom population-use)
    :instance-context (es/create-context
                       index-name "instance"
+                      :url url
                       :settings {"index.mapping.ignore_malformed" true}
                       :mapping-type-defs
                       {:dataset {:properties {:instance {:type "nested"}}}})
    :stats-context (es/create-context
                    index-name "stats"
+                   :url url
                    :settings {"index.mapping.ignore_malformed" true}
                    :mapping-type-defs
                    {:stat-info {:properties {:stats {:type "nested"}}}})
@@ -82,7 +92,7 @@ Example
 
 (def ^:private id-state-key "id-state")
 (def ^{:private true :dynamic true} *connection* nil)
-(dyn-init-var *ns* 'default-connection-inst (atom nil))
+(defa default-connection-inst)
 
 (defmacro with-connection
   "Execute a body with the form (with-connection connection ...)
@@ -137,18 +147,22 @@ Example
   (use-connection
     (reset! default-set-type set-type)))
 
-(defn put-instance
+(defn- put-instance
   "Write an instance to the DB.
 
   The framework is designed to use [[instances-load]] instead."
   ([instance class-label]
-   (put-instance nil instance class-label))
+   (put-instance nil instance class-label nil))
   ([id instance class-label]
+   (put-instance id instance class-label nil))
+  ([id instance class-label set-type]
    (log/debugf "loading instance (%s): %s => <%s>" id class-label instance)
    (use-connection
      (with-context [instance-context]
-       (let [doc {:dataset {:class-label class-label
-                            :instance instance}}]
+       (let [doc {:dataset (merge {:class-label class-label
+                                   :instance instance}
+                                  (if set-type
+                                    {:set-type set-type}))}]
          (if id
            (es/put-document id doc)
            (es/put-document doc)))))))
@@ -159,6 +173,7 @@ Example
   (use-connection
     (with-context [instance-context]
       (es/recreate-index)
+      ;; if put-instance is private use a lambda form
       ((:create-instances-fn (connection)) put-instance))))
 
 (defn instances-count
@@ -194,6 +209,8 @@ Example
   your dataset or corpus is huge and you only want to start with a small chunk
   until you get your models debugged.
 
+  Parameters
+  ----------
   * **ratio** a number between (0-1]; by default this is 1
 
   **Note** This removes any stored *dataset split* state"
@@ -290,11 +307,16 @@ Example
 
 (defn instances
   "Return all instance data based on the *dataset split* (see class docs).
+  This returns a map that has the following keys:
+
+  * **:instance** the instance data, which was set with
+  **:create-instances-fn** in [[elasticsearch-connection]]
+  * **:class-label** the class/label of the instance
 
   Keys
   ----
   * **:set-type** is either `:train` or `:test` and defaults
-  to [[set-default-set-type]] or `:train` if not set"
+    to [[set-default-set-type]] or `:train` if not set"
   [& keys]
   (let [conn (connection)]
     (->> (apply ids keys)
