@@ -384,7 +384,11 @@ Example
        (persist-id-state id-data)
        (stats)))))
 
-(defn divide-by-preset []
+(defn divide-by-preset
+  "Divide the data into test and training *buckets*.  The respective train/test
+  buckets are dictated by the `:set-type` label given in parameter given to the
+  **:create-instances-fn** as documented in [[elasticsearch-connection]]."
+  []
   (use-connection
     (with-context [instance-context]
       (->> (es/documents)
