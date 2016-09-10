@@ -330,8 +330,11 @@ Example
   (ids)
   (use-connection
     (if @ids-inst
-      {:train (count (:train (:train-test @ids-inst)))
-       :test (count (:test (:train-test @ids-inst)))})))
+      (let [train (count (:train (:train-test @ids-inst)))
+            test (count (:test (:train-test @ids-inst)))]
+        {:train train
+         :test test
+         :split (double (/ train (+ train test)))}))))
 
 (defn- id-info []
   {:train (ids :set-type :train)
