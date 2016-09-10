@@ -159,10 +159,10 @@ Example
    (log/debugf "loading instance (%s): %s => <%s>" id class-label instance)
    (use-connection
      (with-context [instance-context]
-       (let [doc {:dataset (merge {:class-label class-label
-                                   :instance instance}
-                                  (if set-type
-                                    {:set-type set-type}))}]
+       (let [doc (merge {:dataset {:class-label class-label
+                                   :instance instance}}
+                        (if set-type
+                          {:set-type set-type}))]
          (if id
            (es/put-document id doc)
            (es/put-document doc)))))))
@@ -184,7 +184,12 @@ Example
       (es/document-count))))
 
 (defn instance-by-id
-  "Get a specific instance by its ID."
+  "Get a specific instance by its ID.
+
+  This returns a map that has the following keys:
+
+  * **:instance** the instance data, which was set with
+  **:create-instances-fn** in [[elasticsearch-connection]]"
   ([conn id]
    (with-connection conn
      (instance-by-id id)))
@@ -307,11 +312,8 @@ Example
 
 (defn instances
   "Return all instance data based on the *dataset split* (see class docs).
-  This returns a map that has the following keys:
 
-  * **:instance** the instance data, which was set with
-  **:create-instances-fn** in [[elasticsearch-connection]]
-  * **:class-label** the class/label of the instance
+  See [[instance-by-id]] for the data in each map sequence returned.
 
   Keys
   ----
@@ -375,12 +377,30 @@ Example
      (let [ids (->> (db-ids) ((if shuffle? shuffle identity)))
            sz (count ids)
            train-count (* train-ratio sz)
-           id-data (->> {:train-test {:train (take train-count ids)
-                                      :test (drop train-count ids)}})]
+           id-data {:train-test {:train (take train-count ids)
+                                 :test (drop train-count ids)}}]
        (reset! ids-inst id-data)
        (log/infof "shuffled: %s" (stats))
        (persist-id-state id-data)
        (stats)))))
+
+(defn divide-by-preset []
+  (use-connection
+    (with-context [instance-context]
+      (->> (es/documents)
+           (reduce (fn [{:keys [test train]} {:keys [id doc]}]
+                     (let [set-type (:set-type doc)
+                           [test train] (if (= "train" set-type)
+                                          [test (cons id train)]
+                                          [(cons id test) train])]
+                       {:train train
+                        :test test}))
+                   {})
+           (hash-map :train-test)
+           (reset! ids-inst))
+      (log/infof "divided by preset: %s" (stats))
+      (persist-id-state @ids-inst)
+      (stats))))
 
 (defn divide-by-fold
   "Divide the data into folds and initialize the current fold in the *dataset
