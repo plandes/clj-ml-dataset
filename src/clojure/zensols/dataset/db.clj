@@ -33,6 +33,16 @@ See [[ids]] for more information."
             [zensols.actioncli.log4j2 :as lu]
             [zensols.dataset.elsearch :refer (with-context) :as es]))
 
+(def ^:private id-state-key "id-state")
+
+(def ^{:private true :dynamic true} *connection* nil)
+
+(def ^{:private true :dynamic true}
+  *load-set-types*
+  "Used to temporarily store key stat data for [[instances-load]].")
+
+(defa default-connection-inst)
+
 (defn elasticsearch-connection
   "Create a connection to the dataset DB cache.
 
@@ -44,9 +54,9 @@ Parameters
 Keys
 ----
 * **:create-instances-fn** a function that computes the instance
-set (i.e. parses the utterance); this function takes a single argument, which
-is also a function that is used to load utterance in the DB; this function
-takes the following forms:
+set (i.e. parses the utterance) and invoked by [[instances-load]]; this
+function takes a single argument, which is also a function that is used to
+load utterance in the DB; this function takes the following forms:
     * (fn [instance class-label] ...
     * (fn [id instance class-label] ...
     * (fn [id instance class-label set-type] ...
@@ -54,7 +64,9 @@ takes the following forms:
         * **instance** is the data set instance (can be an `N`-deep map)
         * **class-label** the label of the class (can be nominal, double, integer)
         * **set-type** either `:test` or `:train` used to presort the data
-        with [[divide-by-preset]]
+        with [[divide-by-preset]]; note that it isn't necessary to
+        call [[divide-by-preset]] for the first invocation of [[instances-load]]
+
   * **:url** the URL to the DB (defaults to `http://localhost:9200`)
 
 Example
@@ -89,10 +101,6 @@ Example
                    :mapping-type-defs
                    {:stat-info {:properties {:stats {:type "nested"}}}})
    :create-instances-fn create-instances-fn})
-
-(def ^:private id-state-key "id-state")
-(def ^{:private true :dynamic true} *connection* nil)
-(defa default-connection-inst)
 
 (defmacro with-connection
   "Execute a body with the form (with-connection connection ...)
@@ -161,11 +169,12 @@ Example
      (with-context [instance-context]
        (let [doc (merge {:dataset {:class-label class-label
                                    :instance instance}}
-                        (if set-type
-                          {:set-type set-type}))]
-         (if id
-           (es/put-document id doc)
-           (es/put-document doc)))))))
+                        (if set-type {:set-type set-type}))
+             res (if id
+                   (es/put-document id doc)
+                   (es/put-document doc))]
+         (when set-type
+           (.add (get *load-set-types* set-type) (:_id res))))))))
 
 (defn instances-load
   "Parse and load the dataset in the DB."
@@ -173,8 +182,21 @@ Example
   (use-connection
     (with-context [instance-context]
       (es/recreate-index)
-      ;; if put-instance is private use a lambda form
-      ((:create-instances-fn (connection)) put-instance))))
+      ;; Elasticsearch queues inserts so avoid the user having to invoke
+      ;; `divide-by-preset` since all records might not clear by the time
+      ;; they're indexed and added to the stats index
+      (binding [*load-set-types* {:train (java.util.LinkedList.)
+                                  :test (java.util.LinkedList.)}]
+       ;; if put-instance is private use a lambda form
+        ((:create-instances-fn (connection)) put-instance)
+        (let [{:keys [test train]} *load-set-types*]
+          (when (or (not (empty? train)) (not (empty? test)))
+            (log/infof "divide: train: %d, test: %d"
+                       (count train) (count test))
+            (reset! ids-inst {:train-test {:train (lazy-seq train)
+                                           :test (lazy-seq test)}})
+            (persist-id-state @ids-inst))))
+      (stats))))
 
 (defn instances-count
   "Return the number of datasets in the DB."
@@ -400,6 +422,7 @@ Example
                            [test train] (if (= "train" set-type)
                                           [test (cons id train)]
                                           [(cons id test) train])]
+                       (log/debugf "%s: %s" set-type id)
                        {:train train
                         :test test}))
                    {})
@@ -426,7 +449,8 @@ Example
                        (create-id-data folds))]
        (reset! ids-inst id-data)
        (log/infof "shuffled: %s" (stats))
-       (persist-id-state id-data)))))
+       (persist-id-state id-data)
+       (stats)))))
 
 (defn- main
   "In REPL testing"
