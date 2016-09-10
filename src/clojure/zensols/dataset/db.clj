@@ -155,49 +155,6 @@ Example
   (use-connection
     (reset! default-set-type set-type)))
 
-(defn- put-instance
-  "Write an instance to the DB.
-
-  The framework is designed to use [[instances-load]] instead."
-  ([instance class-label]
-   (put-instance nil instance class-label nil))
-  ([id instance class-label]
-   (put-instance id instance class-label nil))
-  ([id instance class-label set-type]
-   (log/debugf "loading instance (%s): %s => <%s>" id class-label instance)
-   (use-connection
-     (with-context [instance-context]
-       (let [doc (merge {:dataset {:class-label class-label
-                                   :instance instance}}
-                        (if set-type {:set-type set-type}))
-             res (if id
-                   (es/put-document id doc)
-                   (es/put-document doc))]
-         (when set-type
-           (.add (get *load-set-types* set-type) (:_id res))))))))
-
-(defn instances-load
-  "Parse and load the dataset in the DB."
-  []
-  (use-connection
-    (with-context [instance-context]
-      (es/recreate-index)
-      ;; Elasticsearch queues inserts so avoid the user having to invoke
-      ;; `divide-by-preset` since all records might not clear by the time
-      ;; they're indexed and added to the stats index
-      (binding [*load-set-types* {:train (java.util.LinkedList.)
-                                  :test (java.util.LinkedList.)}]
-       ;; if put-instance is private use a lambda form
-        ((:create-instances-fn (connection)) put-instance)
-        (let [{:keys [test train]} *load-set-types*]
-          (when (or (not (empty? train)) (not (empty? test)))
-            (log/infof "divide: train: %d, test: %d"
-                       (count train) (count test))
-            (reset! ids-inst {:train-test {:train (lazy-seq train)
-                                           :test (lazy-seq test)}})
-            (persist-id-state @ids-inst))))
-      (stats))))
-
 (defn instances-count
   "Return the number of datasets in the DB."
   []
@@ -451,6 +408,49 @@ Example
        (log/infof "shuffled: %s" (stats))
        (persist-id-state id-data)
        (stats)))))
+
+(defn- put-instance
+  "Write an instance to the DB.
+
+  The framework is designed to use [[instances-load]] instead."
+  ([instance class-label]
+   (put-instance nil instance class-label nil))
+  ([id instance class-label]
+   (put-instance id instance class-label nil))
+  ([id instance class-label set-type]
+   (log/debugf "loading instance (%s): %s => <%s>" id class-label instance)
+   (use-connection
+     (with-context [instance-context]
+       (let [doc (merge {:dataset {:class-label class-label
+                                   :instance instance}}
+                        (if set-type {:set-type set-type}))
+             res (if id
+                   (es/put-document id doc)
+                   (es/put-document doc))]
+         (when set-type
+           (.add (get *load-set-types* set-type) (:_id res))))))))
+
+(defn instances-load
+  "Parse and load the dataset in the DB."
+  []
+  (use-connection
+    (with-context [instance-context]
+      (es/recreate-index)
+      ;; Elasticsearch queues inserts so avoid the user having to invoke
+      ;; `divide-by-preset` since all records might not clear by the time
+      ;; they're indexed and added to the stats index
+      (binding [*load-set-types* {:train (java.util.LinkedList.)
+                                  :test (java.util.LinkedList.)}]
+       ;; if put-instance is private use a lambda form
+        ((:create-instances-fn (connection)) put-instance)
+        (let [{:keys [test train]} *load-set-types*]
+          (when (or (not (empty? train)) (not (empty? test)))
+            (log/infof "divide: train: %d, test: %d"
+                       (count train) (count test))
+            (reset! ids-inst {:train-test {:train (lazy-seq train)
+                                           :test (lazy-seq test)}})
+            (persist-id-state @ids-inst))))
+      (stats))))
 
 (defn- main
   "In REPL testing"
