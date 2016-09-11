@@ -16,7 +16,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
 
                  ;; command line
-                 [com.zensols.tools/actioncli "0.0.8"]
+                 [com.zensols.tools/actioncli "0.0.9"]
 
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]
