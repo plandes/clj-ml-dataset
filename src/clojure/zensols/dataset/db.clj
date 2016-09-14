@@ -63,7 +63,7 @@ load utterance in the DB; this function takes the following forms:
         * **id** the unique identifier of the data point
         * **instance** is the data set instance (can be an `N`-deep map)
         * **class-label** the label of the class (can be nominal, double, integer)
-        * **set-type** either `:test` or `:train` used to presort the data
+        * **set-type** either `:test`, `:train`, `:train-test` (all) used to presort the data
         with [[divide-by-preset]]; note that it isn't necessary to
         call [[divide-by-preset]] for the first invocation of [[instances-load]]
 
@@ -148,7 +148,8 @@ Example
 (defn set-default-set-type
   "Set the default bucket (training or testing) to get data.
 
-  * **:set-type** is either `:train` or `:test` (`:train` if not set)
+  * **:set-type** is either `:train` (default) or `:test`;
+  see [[elasticsearch-connection]]
 
   See [[ids]]"
   [set-type]
@@ -279,7 +280,7 @@ Example
 
   Keys
   ----
-  * **:set-type** is either `:train` or `:test` and defaults
+  * **:set-type** is either `:train`, `:test`, `:train-test` (all) and defaults
   to [[set-default-set-type]] or `:train` if not set"
   [& {:keys [set-type] :or {set-type nil}}]
   (use-connection
@@ -287,7 +288,9 @@ Example
       (when (es/exists?)
         (let [set-type (or set-type @default-set-type)
               {:keys [train-test]} (id-list-data)]
-          (get train-test set-type))))))
+          (if (= set-type :train-test)
+            (apply concat (vals train-test))
+            (get train-test set-type)))))))
 
 (defn instances
   "Return all instance data based on the *dataset split* (see class docs).
