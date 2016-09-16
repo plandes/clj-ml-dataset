@@ -18,6 +18,9 @@
                  ;; command line
                  [com.zensols.tools/actioncli "0.0.9"]
 
+                 ;; write dataset report
+                 [com.zensols.tools/misc "0.0.3"]
+
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]
   :profiles {:uberjar {:aot :all}})

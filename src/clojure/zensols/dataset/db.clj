@@ -28,9 +28,12 @@ See [[ids]] for more information."
     zensols.dataset.db
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [clojure.pprint :refer (pprint)])
+            [clojure.pprint :refer (pprint)]            
+            [clj-excel.core :as excel])
   (:require [zensols.actioncli.dynamic :refer (defa) :as dyn]
+            [zensols.actioncli.resource :as res]
             [zensols.actioncli.log4j2 :as lu]
+            [zensols.util.spreadsheet :as ss]
             [zensols.dataset.elsearch :refer (with-context) :as es]))
 
 (def ^:private id-state-key "id-state")
@@ -85,7 +88,8 @@ Example
          population-use 1.0
          set-type :train
          url "http://localhost:9200"}}]
-  {:ids-inst (atom nil)
+  {:index-name index-name
+   :ids-inst (atom nil)
    :default-set-type (atom set-type)
    :population-use (atom population-use)
    :instance-context (es/create-context
@@ -123,6 +127,7 @@ Example
    :private true}
   [& body]
   `(let [conn# (connection)
+         ~'index-name (:index-name conn#)
          ~'ids-inst (:ids-inst conn#)
          ~'instance-context (:instance-context conn#)
          ~'stats-context (:stats-context conn#)
@@ -454,6 +459,32 @@ Example
                                            :test (lazy-seq test)}})
             (persist-id-state @ids-inst))))
       (stats))))
+
+(defn write-dataset-to-excel
+  "Write the data set to an excel file.
+
+  Keys
+  ----
+
+  * **:output-file** where to write the file and defaults to
+  [[res/resource-path]] `:analysis-report`"
+  [& {:keys [output-file ]}]
+  (use-connection
+    (let [output-file (or output-file
+                          (->> (format "%s.xls" index-name)
+                               (res/resource-path :analysis-report)))]
+      (letfn [(data-set [set-type]
+                (->> (instances :set-type set-type)
+                     (map (fn [{:keys [class-label instance]}]
+                            [class-label instance]))
+                     (cons ["Label" "Instance"])
+                     ss/headerize))]
+        (-> (excel/build-workbook
+             (excel/workbook-hssf)
+             {"Train" (data-set :train)
+              "Test" (data-set :test)})
+            (ss/autosize-columns)
+            (excel/save output-file))))))
 
 (defn- main
   "In REPL testing"
