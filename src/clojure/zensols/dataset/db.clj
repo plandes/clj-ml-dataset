@@ -467,22 +467,29 @@ Example
   ----
 
   * **:output-file** where to write the file and defaults to
-  [[res/resource-path]] `:analysis-report`"
-  [& {:keys [output-file ]}]
+  [[res/resource-path]] `:analysis-report`
+  * **:single?** if `true` then create a single sheet, otherwise the training
+  and testing *buckets* are split between sheets"
+  [& {:keys [output-file single?]}]
   (use-connection
     (let [output-file (or output-file
                           (->> (format "%s.xls" index-name)
                                (res/resource-path :analysis-report)))]
-      (letfn [(data-set [set-type]
+      (letfn [(data-set [set-type fields col-names header?]
                 (->> (instances :set-type set-type)
                      (map (fn [{:keys [class-label instance]}]
-                            [class-label instance]))
-                     (cons ["Label" "Instance"])
-                     ss/headerize))]
+                            (concat fields [class-label instance])))
+                     ((if header?
+                        #(cons (concat col-names ["Label" "Instance"]) %)
+                        identity))
+                     ((if header? ss/headerize identity))))]
         (-> (excel/build-workbook
              (excel/workbook-hssf)
-             {"Train" (data-set :train)
-              "Test" (data-set :test)})
+             (if single?
+               {"Train and Test" (concat (data-set :train ["train"] ["Train"] true)
+                                         (data-set :train ["test"] ["Test"] false))}
+               {"Train" (data-set :train nil nil true)
+                "Test" (data-set :test nil nil true)}))
             (ss/autosize-columns)
             (excel/save output-file))))))
 
