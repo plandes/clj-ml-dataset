@@ -287,7 +287,7 @@ Example
   ----
   * **:set-type** is either `:train`, `:test`, `:train-test` (all) and defaults
   to [[set-default-set-type]] or `:train` if not set"
-  [& {:keys [set-type] :or {set-type nil}}]
+  [& {:keys [set-type]}]
   (use-connection
     (with-context [instance-context]
       (when (es/exists?)
@@ -306,10 +306,12 @@ Example
   ----
   * **:set-type** is either `:train` or `:test` and defaults
     to [[set-default-set-type]] or `:train` if not set"
-  [& keys]
+  [& {:keys [set-type include-keys?] :as keys}]
   (let [conn (connection)]
-    (->> (apply ids keys)
-         (map #(instance-by-id conn %)))))
+    (->> (ids :set-type set-type)
+         (map (if include-keys?
+                #(assoc (instance-by-id conn %) :id %)
+                #(instance-by-id conn %))))))
 
 (defn stats
   "Get training vs testing *dataset split* statistics."
