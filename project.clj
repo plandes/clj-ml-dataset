@@ -22,5 +22,4 @@
                  [com.zensols.tools/misc "0.0.3"]
 
                  ;; elastic search
-                 [clojurewerkz/elastisch "2.2.2"]]
-  :profiles {:uberjar {:aot :all}})
+                 [clojurewerkz/elastisch "2.2.2"]])
