@@ -16,11 +16,11 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
 
                  ;; command line
-                 [com.zensols.tools/actioncli "0.0.10"]
+                 [com.zensols.tools/actioncli "0.0.11"]
 
                  ;; write dataset report
-                 [com.zensols.tools/misc "0.0.3"]
+                 [com.zensols.tools/misc "0.0.4"]
 
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:appassem {:aot :all}})
