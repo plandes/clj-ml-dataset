@@ -459,8 +459,7 @@ Example
                        (count train) (count test))
             (reset! ids-inst {:train-test {:train (lazy-seq train)
                                            :test (lazy-seq test)}})
-            (persist-id-state @ids-inst))))
-      (stats))))
+            (persist-id-state @ids-inst)))))))
 
 (defn write-dataset-to-excel
   "Write the data set to an excel file.
