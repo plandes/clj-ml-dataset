@@ -10,12 +10,11 @@ enhancement.  At the moment functions don't carry Elassticsearch artifacts but
 they are exposed.
 
 There are three basic ways to use this data:
+
 * Get all instances (i.e. an utterance or a feature set).  In this case all
   data returned from [[ids]] is considered training data.  This is the default
   nascent state.
-
 * Split the data into a train and test set (see [[divide-by-set]]).
-
 * Use the data as a cross fold validation and iterate
   folds (see [[divide-by-fold]]).
 
