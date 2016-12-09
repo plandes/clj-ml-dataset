@@ -451,12 +451,15 @@ Example
       ;; they're indexed and added to the stats index
       (binding [*load-set-types* {:train (java.util.LinkedList.)
                                   :test (java.util.LinkedList.)}]
-       ;; if put-instance is private use a lambda form
+        ;; if put-instance is private use a lambda form
+        (log/infof "loading instances...")
         ((:create-instances-fn (connection)) put-instance)
         (let [{:keys [test train]} *load-set-types*]
           (when (or (not (empty? train)) (not (empty? test)))
-            (log/infof "divide: train: %d, test: %d"
-                       (count train) (count test))
+            ;; almost never get to hear since ES is still loading and will
+            ;; return no results
+            (log/infof "divide: %d: train: %d, test: %d"
+                       (+ (count train) (count test)))
             (reset! ids-inst {:train-test {:train (lazy-seq train)
                                            :test (lazy-seq test)}})
             (persist-id-state @ids-inst)))))))
