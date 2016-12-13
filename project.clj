@@ -13,7 +13,6 @@
   :source-paths ["src/clojure"]
   :javac-options ["-Xlint:unchecked"]
   :exclusions [org.slf4j/slf4j-log4j12
-               log4j/log4j
                ch.qos.logback/logback-classic]
   :dependencies [[org.clojure/clojure "1.8.0"]
 

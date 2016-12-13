@@ -31,7 +31,6 @@ See [[ids]] for more information."
             [clj-excel.core :as excel])
   (:require [zensols.actioncli.dynamic :refer (defa) :as dyn]
             [zensols.actioncli.resource :as res]
-            [zensols.actioncli.log4j2 :as lu]
             [zensols.util.spreadsheet :as ss]
             [zensols.dataset.elsearch :refer (with-context) :as es]))
 
