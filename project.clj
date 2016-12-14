@@ -12,8 +12,6 @@
           :source-uri "https://github.com/plandes/clj-ml-dataset/blob/v{version}/{filepath}#L{line}"}
   :source-paths ["src/clojure"]
   :javac-options ["-Xlint:unchecked"]
-  :exclusions [org.slf4j/slf4j-log4j12
-               ch.qos.logback/logback-classic]
   :dependencies [[org.clojure/clojure "1.8.0"]
 
                  ;; command line
@@ -24,4 +22,10 @@
 
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]
-  :profiles {:appassem {:aot :all}})
+  :profiles {:appassem {:aot :all}
+             :dev
+             {:jvm-opts
+              ["-Dlog4j.configurationFile=test-resources/log4j2.xml" "-Xms4g" "-Xmx12g" "-XX:+UseConcMarkSweepGC"]
+              :dependencies [[org.apache.logging.log4j/log4j-core "2.7"]
+                             [org.apache.logging.log4j/log4j-slf4j-impl "2.7"]
+                             [com.zensols/clj-append "1.0.5"]]}})
