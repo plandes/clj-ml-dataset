@@ -302,8 +302,8 @@ Example
 
   Keys
   ----
-  * **:set-type** is either `:train` or `:test` and defaults
-    to [[set-default-set-type]] or `:train` if not set
+  * **:set-type** is either `:train`, `:test`, `:train-test` (all) and defaults
+  to [[set-default-set-type]] or `:train` if not set
   * **:include-keys?** if non-`nil` return keys in the map as well"
   [& {:keys [set-type include-keys?] :as keys}]
   (let [conn (connection)]
