@@ -169,6 +169,10 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   "Return the total number of documents in the DB."
   []
   (let [{:keys [index-name mapping-type]} (context)]
+    (if-not (exists?)
+      (-> (format "Index does not exist: %s" index-name)
+          (ex-info {:index-name index-name})
+          throw))
     (->> (esd/search (connection) index-name mapping-type :query (q/match-all))
          assert-success
          (esrsp/total-hits))))
