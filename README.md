@@ -1,5 +1,5 @@
-Generate, Split Into Folds or Train/Test and Cache a Dataset
-============================================================
+# Generate, Split Into Folds or Train/Test and Cache a Dataset
+
 This is a small simple library that automates the parsing and caching of the
 parsed utterances in [Elasticsearch](https://www.elastic.co).
 
@@ -12,18 +12,35 @@ repeated.
 
 This library is designed to make this process less painful.
 
-Obtaining
----------
+
+## Contents
+
+* [Obtaining](#obtaining)
+* [Documentation](#documentation)
+* [Setup](#setup)
+* [Example](#example)
+* [Usage](#usage)
+  * [Write a Corpus Access Namespace](#write a corpus access namespace)
+  * [Using on the REPL](#using on the repl)
+* [Building](#building)
+* [Changelog](#changelog)
+* [License](#license)
+
+
+## Obtaining
+
 In your `project.clj` file, add:
 
 [![Clojars Project](https://clojars.org/com.zensols.ml/dataset/latest-version.svg)](https://clojars.org/com.zensols.ml/dataset/)
 
-Documentation
--------------
-Additional [documentation](https://plandes.github.io/clj-ml-dataset/codox/index.html).
 
-Setup
------
+## Documentation
+
+API [documentation](https://plandes.github.io/clj-ml-dataset/codox/index.html).
+
+
+## Setup
+
 If you don't have an Elasticsearch instance handy I recommend you use the
 docker image and SSH tunnel the port so you don't have to configure that
 separately.  Do do this:
@@ -38,16 +55,19 @@ separately.  Do do this:
    src/bin/docker-tunnel.sh```
 5. Start the repl to your example program: ```bash lein repl```
 
-Example
--------
+
+## Example
+
 See the [example repo](https://github.com/plandes/clj-example-nlp-ml) that
 illustrates how to use this library and contains the code from where these
 examples originate.  It's highly recommended to clone it and follow along as
 you peruse this README.
 
-Usage
------
+
+## Usage
+
 First create a namespace to use as your *database* library.
+
 
 ### Write a Corpus Access Namespace
 ```clojure
@@ -100,20 +120,31 @@ user> (count (anons))
 25
 ```
 
-Building
---------
-All [leiningen](http://leiningen.org) tasks will work in this project.  For
-additional build functionality (git tag convenience utility functionality)
-clone the [Clojure build repo](https://github.com/plandes/clj-zenbuild) in the
-same (parent of this file) directory as this project:
-```bash
-   cd ..
-   git clone https://github.com/plandes/clj-zenbuild
-```
+## Building
 
-License
---------
-Copyright © 2016 Paul Landes
+To build from source, do the folling:
+
+- Install [Leiningen](http://leiningen.org) (this is just a script)
+- Install [GNU make](https://www.gnu.org/software/make/)
+- Install [Git](https://git-scm.com)
+- Download the source: `git clone https://github.com/clj-mkproj && cd clj-mkproj`
+- Download the make include files:
+```bash
+mkdir ../clj-zenbuild && wget -O - https://api.github.com/repos/plandes/clj-zenbuild/tarball | tar zxfv - -C ../clj-zenbuild --strip-components 1
+```
+- Build the distribution binaries: `make dist`
+
+Note that you can also build a single jar file with all the dependencies with: `make uber`
+
+
+## Changelog
+
+An extensive changelog is available [here](CHANGELOG.md).
+
+
+## License
+
+Copyright © 2016, 2017 Paul Landes
 
 Apache License version 2.0
 
