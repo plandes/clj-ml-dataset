@@ -1,5 +1,10 @@
 # Generate, Split Into Folds or Train/Test and Cache a Dataset
 
+[![Travis CI Build Status][travis-badge]][travis-link]
+
+  [travis-link]: https://travis-ci.org/plandes/clj-ml-dataset
+  [travis-badge]: https://travis-ci.org/plandes/clj-ml-dataset.svg?branch=master
+
 This is a small simple library that automates the parsing and caching of the
 parsed utterances in [Elasticsearch](https://www.elastic.co).
 
