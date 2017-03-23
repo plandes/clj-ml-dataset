@@ -50,7 +50,6 @@ See [[ids]] for more information."
 Parameters
 ----------
 * **index-name** the name of the Elasticsearch index
-* **mapping-type** map type name (see ES docs)
 
 Keys
 ----
@@ -69,6 +68,7 @@ load utterance in the DB; this function takes the following forms:
         call [[divide-by-preset]] for the first invocation of [[instances-load]]
 
   * **:url** the URL to the DB (defaults to `http://localhost:9200`)
+  * **mapping-type** map type name (see ES docs)
 
 Example
 -------
@@ -81,10 +81,11 @@ Example
     (elasticsearch-connection \"tmp\" :create-instances-fn load-fn)))
 ```"
   [index-name &
-   {:keys [create-instances-fn population-use set-type url]
+   {:keys [create-instances-fn population-use set-type url mapping-type-def]
     :or {create-instances-fn identity
          population-use 1.0
          set-type :train
+         mapping-type-def {:instance {:type "nested"}}
          url "http://localhost:9200"}}]
   {:index-name index-name
    :ids-inst (atom nil)
@@ -95,7 +96,7 @@ Example
                       :url url
                       :settings {"index.mapping.ignore_malformed" true}
                       :mapping-type-defs
-                      {:dataset {:properties {:instance {:type "nested"}}}})
+                      {:dataset {:properties mapping-type-def}})
    :stats-context (es/create-context
                    index-name "stats"
                    :url url
@@ -427,7 +428,11 @@ Example
   ([id instance class-label]
    (put-instance id instance class-label nil))
   ([id instance class-label set-type]
-   (log/debugf "loading instance (%s): %s => <%s>" id class-label instance)
+   (log/infof "loading instance (%s): %s => <%s>"
+               id class-label
+               (let [s (pr-str instance)]
+                 (subs s 0 (min 80 (count s)))))
+   (log/debugf "instance: %s" instance)
    (use-connection
      (with-context [instance-context]
        (let [doc (merge {:dataset {:class-label class-label
