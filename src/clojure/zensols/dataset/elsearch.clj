@@ -95,7 +95,7 @@ probably want use the more client friendly [[zensols.dataset.db]]."
 (defn describe
   "Get the mapping (provide info) about the index."
   []
-  (let [{:keys [index-name]} (context)]  
+  (let [{:keys [index-name]} (context)]
     (esi/get-mapping (connection) index-name)))
 
 (defn- assert-success [res]
@@ -150,7 +150,7 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   [query]
   (->> (merge query {:search_type "query_then_fetch"
                      :scroll "1m"})
-       search-literal 
+       search-literal
        (esd/scroll-seq (connection))
        (map #(-> %
                  (select-keys [:_id :_source])
