@@ -27,12 +27,26 @@ See [[ids]] for more information."
     zensols.dataset.db
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
-            [clojure.pprint :refer (pprint)]            
-            [clj-excel.core :as excel])
+            [clojure.string :as s]
+            [clojure.set :refer (rename-keys)]
+            [clojure.data.csv :as csv])
+  (:require [clj-excel.core :as excel])
   (:require [zensols.actioncli.dynamic :refer (defa) :as dyn]
             [zensols.actioncli.resource :as res]
             [zensols.util.spreadsheet :as ss]
             [zensols.dataset.elsearch :refer (with-context) :as es]))
+
+(def instance-key :instance)
+
+(def class-label-key :class-label)
+
+(def ^:private dataset-key :dataset)
+
+(def ^:private es-class-label-key
+  (->> [dataset-key class-label-key] (map name) (s/join ".")))
+
+(def ^:private es-instance-key
+  (-> dataset-key name (str ".instance")))
 
 (def ^:private id-state-key "id-state")
 
@@ -85,7 +99,7 @@ Example
     :or {create-instances-fn identity
          population-use 1.0
          set-type :train
-         mapping-type-def {:instance {:type "nested"}}
+         mapping-type-def {instance-key {:type "nested"}}
          url "http://localhost:9200"}}]
   {:index-name index-name
    :ids-inst (atom nil)
@@ -96,7 +110,7 @@ Example
                       :url url
                       :settings {"index.mapping.ignore_malformed" true}
                       :mapping-type-defs
-                      {:dataset {:properties mapping-type-def}})
+                      {dataset-key {:properties mapping-type-def}})
    :stats-context (es/create-context
                    index-name "stats"
                    :url url
@@ -180,7 +194,8 @@ Example
   ([id]
    (use-connection
      (with-context [instance-context]
-       (:dataset (es/document-by-id id))))))
+       (->> (es/document-by-id id)
+            dataset-key)))))
 
 (defn clear
   "Clear the in memory instance data.  If key `:wipe-persistent?` is `true` all
@@ -305,11 +320,11 @@ Example
   ----
   * **:set-type** is either `:train`, `:test`, `:train-test` (all) and defaults
   to [[set-default-set-type]] or `:train` if not set
-  * **:include-keys?** if non-`nil` return keys in the map as well"
-  [& {:keys [set-type include-keys?] :as keys}]
+  * **:include-ids?** if non-`nil` return keys in the map as well"
+  [& {:keys [set-type include-ids?]}]
   (let [conn (connection)]
     (->> (ids :set-type set-type)
-         (map (if include-keys?
+         (map (if include-ids?
                 #(assoc (instance-by-id conn %) :id %)
                 #(instance-by-id conn %))))))
 
@@ -320,10 +335,13 @@ Example
   (use-connection
     (if @ids-inst
       (let [train (count (:train (:train-test @ids-inst)))
-            test (count (:test (:train-test @ids-inst)))]
+            test (count (:test (:train-test @ids-inst)))
+            total (+ train test)]
         {:train train
          :test test
-         :split (double (/ train (+ train test)))}))))
+         :split (if (= 0 total)
+                  0.0
+                  (double (/ train total)))}))))
 
 (defn- id-info []
   {:train (ids :set-type :train)
@@ -351,30 +369,6 @@ Example
                      (merge {:train-test (compute-folds data)})
                      (persist-id-state))))))
     (stats)))
-
-(defn divide-by-set
-  "Divide the dataset into a test and training *buckets*.
-
-  * **train-ratio** this is the percentage of data in the train bucket, which
-  defaults to `0.5`
-
-  Keys
-  ----
-  * **:shuffle?** if `true` then shuffle the set before partitioning, otherwise
-  just update the *demarcation* boundary"
-  ([]
-   (divide-by-set 0.5))
-  ([train-ratio & {:keys [shuffle?] :or {shuffle? true}}]
-   (use-connection
-     (let [ids (->> (db-ids) ((if shuffle? shuffle identity)))
-           sz (count ids)
-           train-count (* train-ratio sz)
-           id-data {:train-test {:train (take train-count ids)
-                                 :test (drop train-count ids)}}]
-       (reset! ids-inst id-data)
-       (log/infof "shuffled: %s" (stats))
-       (persist-id-state id-data)
-       (stats)))))
 
 (defn divide-by-preset
   "Divide the data into test and training *buckets*.  The respective train/test
@@ -430,13 +424,16 @@ Example
   ([id instance class-label set-type]
    (log/infof "loading instance (%s): %s => <%s>"
                id class-label
-               (let [s (pr-str instance)]
-                 (subs s 0 (min 80 (count s)))))
+               (let [maxlen (count s)
+                     s (pr-str instance)
+                     len (count s)]
+                 (str (subs s 0 (min maxlen len))
+                      (if (> len maxlen) "..."))))
    (log/debugf "instance: %s" instance)
    (use-connection
      (with-context [instance-context]
-       (let [doc (merge {:dataset {:class-label class-label
-                                   :instance instance}}
+       (let [doc (merge {dataset-key {class-label-key class-label
+                                      instance-key instance}}
                         (if set-type {:set-type set-type}))
              res (if id
                    (es/put-document id doc)
@@ -468,53 +465,189 @@ Example
                                            :test (lazy-seq test)}})
             (persist-id-state @ids-inst)))))))
 
-(defn write-dataset-to-excel
-  "Write the data set to an excel file.
+(defn distribution
+  "Return maps representing the data set distribution by class label.  Each
+  element of the returned sequence has the following keys:
+
+  * **:class-label** the class-label fo the instances
+  * **:count** the number of instances for **:class-label**"
+  []
+  (use-connection
+    (with-context [instance-context]
+      (->> (es/buckets es-class-label-key)
+           (map #(rename-keys % {:name class-label-key}))))))
+
+(defn instances-by-class-label
+  "Return a map with class-labels for keys and corresponding instances for that
+  class-label.
 
   Keys
   ----
+  * **:max-instances** the maximum number of instances per class
+  * **:type* the data to grab, which is one of the following symbols:
+    * **ids** returns only IDs (not the document data)
+    * **document** returns the document data (`:class-label` and `:instance` keys)
+  * **:seed** if given, seed the random number generator, otherwise don't
+  return random documents"
+  [& {:keys [max-instances type seed]
+      :or {max-instances Integer/MAX_VALUE
+           type 'document}}]
+  (use-connection
+    (with-context [instance-context]
+      (letfn ([query [class-label]
+               (merge {:query
+                       (if seed
+                         {:function_score
+                          {:filter {:term {es-class-label-key class-label}}
+                           :functions [{:random_score
+                                        {:seed seed}}]}}
+                         {:term {es-class-label-key class-label}})}
+                      (if (= type 'ids) {:fields []}))])
+        (->> (distribution)
+             (map class-label-key)
+             (map (fn [class-label]
+                    (->> (query class-label)
+                         es/search
+                         (take max-instances)
+                         (map (case type
+                                document #(-> % :doc dataset-key)
+                                ids #(-> % :id Integer/parseInt)))
+                         (array-map class-label))))
+             (into {})
+             doall)))))
 
+(defn- divide-by-uneven-distribution-set
+  "Divide the dataset into a test and training *buckets*.
+
+  * **train-ratio** this is the percentage of data in the train bucket.
+
+  Keys
+  ----
+  * **:shuffle?** if `true` then shuffle the set before partitioning, otherwise
+  just update the *demarcation* boundary"
+  [train-ratio & {:keys [shuffle? ids
+                         max-instances]
+                  :or {shuffle? true
+                       max-instances Integer/MAX_VALUE}}]
+  (use-connection
+    (let [ids (->> (or ids (db-ids))
+                   ((if shuffle? shuffle identity))
+                   (take max-instances))
+          sz (count ids)
+          train-count (* train-ratio sz)
+          id-data {:train-test {:train (take train-count ids)
+                                :test (drop train-count ids)}}]
+      (reset! ids-inst id-data)
+      (log/infof "divided by set: %s" (stats))
+      (persist-id-state id-data)
+      (stats))))
+
+(defn- divide-by-class-distribution-set
+  "Just like [[divide-by-uneven-distribution-set]] but each test and training set
+  has an even distribution by class label.
+
+  The **keys** parameter(s) are described in [[divide-by-set]]
+  and [[instances-by-class-label]]."
+  [train-ratio & opts]
+  (use-connection
+    (with-context [instance-context]
+      (let [opts (concat opts [:type 'ids])
+            {:keys [shuffle?] :or {shuffle? true}} (apply hash-map opts)]
+        (->> opts
+             (apply instances-by-class-label)
+             vals
+             (reduce (fn [{:keys [train test]} ids]
+                       (let [sz (count ids)
+                             train-count (* train-ratio sz)]
+                         {:train (concat train (take train-count ids))
+                          :test (concat test (drop train-count ids))}))
+                     {})
+             ((if shuffle?
+                (fn [{:keys [test train]}]
+                  {:test (shuffle test)
+                   :train (shuffle train)})
+                identity))
+             (array-map :train-test)
+             (reset! ids-inst)
+             persist-id-state))
+      (let [stats (stats)]
+        (log/infof "divided by set with even distribution by class: %s" stats)
+        stats))))
+
+(defn divide-by-set
+  "Divide the dataset into a test and training *buckets*.
+
+  * **train-ratio** this is the percentage of data in the train bucket, which
+  defaults to `0.5`
+
+  Keys
+  ----
+  * **:dist-type** one of the following symbols:
+      *even* each test/training set has an even distribution by class label
+      *uneven* each test/training set has an uneven distribution by class label
+  * **:shuffle?** if `true` then shuffle the set before partitioning, otherwise
+  just update the *demarcation* boundary
+  * **:max-instances** the maximum number of instances per class
+  * **:seed** if given, seed the random number generator, otherwise don't
+  return random documents"
+  ([]
+   (divide-by-set 0.5))
+  ([train-ratio & {:keys [dist-type shuffle? max-instances seed]
+                    :as opts
+                    :or {shuffle? true
+                         dist-type 'uneven}}]
+   (-> (case dist-type
+         even divide-by-class-distribution-set
+         uneven divide-by-uneven-distribution-set)
+       (apply (apply concat (list train-ratio) opts)))))
+
+(defn dataset-file []
+  (use-connection
+    (->> (format "%s-dataset.xls" index-name)
+         (res/resource-path :analysis-report))))
+
+(defn write-dataset
+  "Write the data set to a spreadsheet.  If the file name ends with a `.csv` a
+  CSV file is written, otherwise an Excel file is written.
+
+  Keys
+  ----
   * **:output-file** where to write the file and defaults to
   [[res/resource-path]] `:analysis-report`
   * **:single?** if `true` then create a single sheet, otherwise the training
   and testing *buckets* are split between sheets"
-  [& {:keys [output-file single?]}]
+  [& {:keys [output-file single? instance-fn columns-fn]
+      :or {instance-fn identity
+           columns-fn (constantly ["Instance"])}}]
   (use-connection
-    (let [output-file (or output-file
-                          (->> (format "%s.xls" index-name)
-                               (res/resource-path :analysis-report)))]
-      (letfn [(data-set [set-type fields col-names header?]
-                (->> (instances :set-type set-type)
-                     (map (fn [{:keys [class-label instance]}]
-                            (concat fields [class-label instance])))
-                     ((if header?
-                        #(cons (concat col-names ["Label" "Instance"]) %)
-                        identity))
-                     ((if header? ss/headerize identity))))]
-        (-> (excel/build-workbook
-             (excel/workbook-hssf)
-             (if single?
-               {"Train and Test" (concat (data-set :train ["train"] ["Train"] true)
-                                         (data-set :train ["test"] ["Test"] false))}
-               {"Train" (data-set :train nil nil true)
-                "Test" (data-set :test nil nil true)}))
-            (ss/autosize-columns)
-            (excel/save output-file))))))
-
-(defn- main
-  "In REPL testing"
-  [& actions]
-  (use-connection
-    (->> actions
-         (map (fn [action]
-                (case action
-                  -2 (set-default-connection)
-                  -1 (clear :wipe-persistent? true)
-                  0 (instances-load)
-                  4 (create-id-list)
-                  7 (id-info)
-                  8 (with-context [stats-context]
-                      (pprint (es/describe)))
-                  9 (set-population-use 0.7)
-                  12 (stats))))
-         doall)))
+    (let [output-file (or output-file (dataset-file))
+          csv? (re-matches #".*\.csv$" (.toString output-file))]
+      (letfn [(data-set [set-type fields col-names header? headerize?]
+                (let [insts (instances :set-type set-type :include-ids? true)
+                      header-inst (first insts)]
+                  (->> insts
+                       (map (fn [{:keys [class-label id instance]}]
+                              (->> (instance-fn instance)
+                                   (concat fields [class-label id]))))
+                       ((if header?
+                          #(cons (concat col-names
+                                         ["Label" "Id"]
+                                         (columns-fn header-inst))
+                                 %)
+                          identity))
+                       ((if headerize? ss/headerize identity)))))]
+        (if csv?
+          (with-open [writer (io/writer output-file)]
+            (->> (concat (data-set :train ["train"] ["Set Type"] true false)
+                         (data-set :train ["test"] nil false false))
+                 (csv/write-csv writer)))
+          (-> (excel/build-workbook
+               (excel/workbook-hssf)
+               (if single?
+                 {"Train and Test"
+                  (concat (data-set :train ["train"] ["Set Type"] true true)
+                          (data-set :train ["test"] ["Test"] false false))}
+                 {"Train" (data-set :train nil nil true true)
+                  "Test" (data-set :test nil nil true true)}))
+              (ss/autosize-columns)
+              (excel/save output-file)))))))
