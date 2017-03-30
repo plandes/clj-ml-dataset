@@ -424,9 +424,9 @@ Example
   ([id instance class-label set-type]
    (log/infof "loading instance (%s): %s => <%s>"
                id class-label
-               (let [maxlen (count s)
-                     s (pr-str instance)
-                     len (count s)]
+               (let [s (pr-str instance)
+                     len (count s)
+                     maxlen (min 80 len)]
                  (str (subs s 0 (min maxlen len))
                       (if (> len maxlen) "..."))))
    (log/debugf "instance: %s" instance)
