@@ -45,13 +45,7 @@ See [[ids]] for more information."
 
 (def ^:private dataset-key :dataset)
 
-(def ^:private es-class-label-key
-  ;(->> [dataset-key class-label-key] (map name) (s/join "."))
-  class-label-key
-  )
-
-;; (def ^:private es-instance-key
-;;   (-> dataset-key name (str ".instance")))
+(def ^:private es-class-label-key class-label-key)
 
 (def ^:private id-state-key "id-state")
 
@@ -236,17 +230,13 @@ Example
 (defn- persist-id-state [id-state]
   (use-connection
     (with-context [stats-context]
-      ;(es/put-document id-state-key {stat-info-key id-state})
-      (es/put-document id-state-key id-state)
-      ))
+      (es/put-document id-state-key id-state)))
   id-state)
 
 (defn- unpersist-id-state []
   (use-connection
     (with-context [stats-context]
-      ;(stat-info-key (es/document-by-id id-state-key))
-      (es/document-by-id id-state-key)
-      )))
+      (es/document-by-id id-state-key))))
 
 (defn- db-ids
   "Get IDs straight from the DB."
