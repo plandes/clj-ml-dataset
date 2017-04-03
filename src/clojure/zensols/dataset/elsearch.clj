@@ -69,8 +69,7 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   (let [{:keys [properties index-name mapping-type-defs settings]} (context)]
     (log/infof "mapping '%s': <%s>" index-name mapping-type-defs)
     (-> (apply esi/create (concat [(connection) index-name :mappings mapping-type-defs]
-                                   (if settings [:settings settings])))
-        assert-success)))
+                                   (if settings [:settings settings]))))))
 
 (defn delete-mapping
   "Delete an Elasticsearch mapping."
