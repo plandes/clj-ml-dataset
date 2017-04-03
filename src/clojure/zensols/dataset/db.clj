@@ -41,9 +41,9 @@ See [[ids]] for more information."
 
 (def class-label-key :class-label)
 
-(def stat-info-key :stat-info)
+(def ^:private dataset-index-name "dataset")
 
-(def ^:private dataset-key :dataset)
+(def ^:private stat-index-name "stat-info")
 
 (def ^:private es-class-label-key class-label-key)
 
@@ -107,20 +107,17 @@ Example
    :default-set-type (atom set-type)
    :population-use (atom population-use)
    :instance-context (es/create-context
-                      ;index-name "instanceX"
-                      index-name (name dataset-key)
+                      index-name dataset-index-name
                       :url url
                       :settings {"index.mapping.ignore_malformed" true}
                       :mapping-type-defs
-                      {(name dataset-key) {:properties mapping-type-def}}
-                      ;mapping-type-def
-                      )
+                      {dataset-index-name {:properties mapping-type-def}})
    :stats-context (es/create-context
                    index-name "stats"
                    :url url
                    :settings {"index.mapping.ignore_malformed" true}
                    :mapping-type-defs
-                   {(name stat-info-key) {:properties {:stats {:type "nested"}}}})
+                   {stat-index-name {:properties {:stats {:type "nested"}}}})
    :create-instances-fn create-instances-fn})
 
 (defmacro with-connection
@@ -198,8 +195,7 @@ Example
   ([id]
    (use-connection
      (with-context [instance-context]
-       (->> (es/document-by-id id)
-            dataset-key)))))
+       (->> (es/document-by-id id))))))
 
 (defn clear
   "Clear the in memory instance data.  If key `:wipe-persistent?` is `true` all
