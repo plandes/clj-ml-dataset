@@ -31,8 +31,9 @@ See [[ids]] for more information."
             [clojure.set :refer (rename-keys)]
             [clojure.data.csv :as csv])
   (:require [clj-excel.core :as excel])
-  (:require [zensols.actioncli.dynamic :refer (defa) :as dyn]
+  (:require [zensols.actioncli.dynamic :as dyn]
             [zensols.actioncli.resource :as res]
+            [zensols.util.string :as zs]
             [zensols.util.spreadsheet :as ss]
             [zensols.dataset.elsearch :refer (with-context) :as es]))
 
@@ -40,13 +41,17 @@ See [[ids]] for more information."
 
 (def class-label-key :class-label)
 
+(def stat-info-key :stat-info)
+
 (def ^:private dataset-key :dataset)
 
 (def ^:private es-class-label-key
-  (->> [dataset-key class-label-key] (map name) (s/join ".")))
+  ;(->> [dataset-key class-label-key] (map name) (s/join "."))
+  class-label-key
+  )
 
-(def ^:private es-instance-key
-  (-> dataset-key name (str ".instance")))
+;; (def ^:private es-instance-key
+;;   (-> dataset-key name (str ".instance")))
 
 (def ^:private id-state-key "id-state")
 
@@ -56,7 +61,7 @@ See [[ids]] for more information."
   *load-set-types*
   "Used to temporarily store key stat data for [[instances-load]].")
 
-(defa default-connection-inst)
+(defonce default-connection-inst (atom nil))
 
 (defn elasticsearch-connection
   "Create a connection to the dataset DB cache.
@@ -99,24 +104,29 @@ Example
     :or {create-instances-fn identity
          population-use 1.0
          set-type :train
-         mapping-type-def {instance-key {:type "nested"}}
+         mapping-type-def {instance-key {:type "nested"}
+                           class-label-key {:type "string"
+                                            :index "not_analyzed"}}
          url "http://localhost:9200"}}]
   {:index-name index-name
    :ids-inst (atom nil)
    :default-set-type (atom set-type)
    :population-use (atom population-use)
    :instance-context (es/create-context
-                      index-name "instance"
+                      ;index-name "instanceX"
+                      index-name (name dataset-key)
                       :url url
                       :settings {"index.mapping.ignore_malformed" true}
                       :mapping-type-defs
-                      {dataset-key {:properties mapping-type-def}})
+                      {(name dataset-key) {:properties mapping-type-def}}
+                      ;mapping-type-def
+                      )
    :stats-context (es/create-context
                    index-name "stats"
                    :url url
                    :settings {"index.mapping.ignore_malformed" true}
                    :mapping-type-defs
-                   {:stat-info {:properties {:stats {:type "nested"}}}})
+                   {(name stat-info-key) {:properties {:stats {:type "nested"}}}})
    :create-instances-fn create-instances-fn})
 
 (defmacro with-connection
@@ -226,13 +236,17 @@ Example
 (defn- persist-id-state [id-state]
   (use-connection
     (with-context [stats-context]
-      (es/put-document id-state-key {:stat-info id-state})))
+      ;(es/put-document id-state-key {stat-info-key id-state})
+      (es/put-document id-state-key id-state)
+      ))
   id-state)
 
 (defn- unpersist-id-state []
   (use-connection
     (with-context [stats-context]
-      (:stat-info (es/document-by-id id-state-key)))))
+      ;(stat-info-key (es/document-by-id id-state-key))
+      (es/document-by-id id-state-key)
+      )))
 
 (defn- db-ids
   "Get IDs straight from the DB."
@@ -423,17 +437,11 @@ Example
    (put-instance id instance class-label nil))
   ([id instance class-label set-type]
    (log/infof "loading instance (%s): %s => <%s>"
-               id class-label
-               (let [s (pr-str instance)
-                     len (count s)
-                     maxlen (min 80 len)]
-                 (str (subs s 0 (min maxlen len))
-                      (if (> len maxlen) "..."))))
+               id class-label (zs/trunc instance))
    (log/debugf "instance: %s" instance)
    (use-connection
      (with-context [instance-context]
-       (let [doc (merge {dataset-key {class-label-key class-label
-                                      instance-key instance}}
+       (let [doc (merge {class-label-key class-label instance-key instance}
                         (if set-type {:set-type set-type}))
              res (if id
                    (es/put-document id doc)
@@ -510,7 +518,7 @@ Example
                          es/search
                          (take max-instances)
                          (map (case type
-                                document #(-> % :doc dataset-key)
+                                document #(-> % :doc)
                                 ids #(-> % :id Integer/parseInt)))
                          (array-map class-label))))
              (into {})
@@ -606,6 +614,19 @@ Example
     (->> (format "%s-dataset.xls" index-name)
          (res/resource-path :analysis-report))))
 
+(defn- rows-counts-by-class-label []
+  (->> (instances-by-class-label)
+       (reduce (fn [{:keys [total rows]} [name insts]]
+                 (let [cnt (count insts)]
+                   {:rows (conj rows [name cnt])
+                    :total (+ total cnt)}))
+               {:rows [] :total 0})
+       ((fn [{:keys [rows total]}]
+          (->> (sort-by second rows)
+               reverse
+               (#(concat % [["Total" total]])))))
+       (cons ["Label" "Count"])))
+
 (defn write-dataset
   "Write the data set to a spreadsheet.  If the file name ends with a `.csv` a
   CSV file is written, otherwise an Excel file is written.
@@ -639,7 +660,7 @@ Example
         (if csv?
           (with-open [writer (io/writer output-file)]
             (->> (concat (data-set :train ["train"] ["Set Type"] true false)
-                         (data-set :train ["test"] nil false false))
+                         (data-set :test ["test"] nil false false))
                  (csv/write-csv writer)))
           (-> (excel/build-workbook
                (excel/workbook-hssf)
@@ -648,6 +669,8 @@ Example
                   (concat (data-set :train ["train"] ["Set Type"] true true)
                           (data-set :train ["test"] ["Test"] false false))}
                  {"Train" (data-set :train nil nil true true)
-                  "Test" (data-set :test nil nil true true)}))
+                  "Test" (data-set :test nil nil true true)
+                  "Counts By Label" (-> (rows-counts-by-class-label)
+                                        ss/headerize)}))
               (ss/autosize-columns)
               (excel/save output-file)))))))

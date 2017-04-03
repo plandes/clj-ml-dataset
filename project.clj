@@ -21,7 +21,7 @@
                  [com.zensols.tools/actioncli "0.0.15"]
 
                  ;; write dataset report
-                 [com.zensols.tools/misc "0.0.4"]
+                 [com.zensols.tools/misc "snapshot"]
 
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]

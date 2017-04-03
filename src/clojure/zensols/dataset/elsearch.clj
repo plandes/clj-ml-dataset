@@ -9,7 +9,8 @@ probably want use the more client friendly [[zensols.dataset.db]]."
             [clojurewerkz.elastisch.rest.index :as esi]
             [clojurewerkz.elastisch.rest.document :as esd]
             [clojurewerkz.elastisch.query :as q]
-            [clojurewerkz.elastisch.rest.response :as esrsp]))
+            [clojurewerkz.elastisch.rest.response :as esrsp])
+  (:require [zensols.util.string :as zs]))
 
 (def ^{:private true :dynamic true}
   *context* nil)
@@ -66,9 +67,10 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   "Create a new Elasticsearch index."
   []
   (let [{:keys [properties index-name mapping-type-defs settings]} (context)]
-    (log/infof "mapping: <%s>" mapping-type-defs)
-    (apply esi/create (concat [(connection) index-name :mappings mapping-type-defs]
-                              (if settings [:settings settings])))))
+    (log/infof "mapping '%s': <%s>" index-name mapping-type-defs)
+    (-> (apply esi/create (concat [(connection) index-name :mappings mapping-type-defs]
+                                   (if settings [:settings settings])))
+        assert-success)))
 
 (defn delete-mapping
   "Delete an Elasticsearch mapping."
@@ -110,7 +112,8 @@ probably want use the more client friendly [[zensols.dataset.db]]."
    (put-document nil doc))
   ([id doc]
    (let [{:keys [index-name mapping-type]} (context)]
-     (log/debugf "adding %s:%s:%s <%s>" index-name mapping-type id (pr-str doc))
+     (log/debugf "adding %s:%s:%s <%s>"
+                 index-name mapping-type id (zs/trunc doc))
      (->> (if id
             (esd/put (connection) index-name mapping-type id doc)
             (esd/create (connection) index-name mapping-type doc))
