@@ -321,9 +321,9 @@ Example
   * **:set-type** is either `:train`, `:test`, `:train-test` (all) and defaults
   to [[set-default-set-type]] or `:train` if not set
   * **:include-ids?** if non-`nil` return keys in the map as well"
-  [& {:keys [set-type include-ids?]}]
+  [& {:keys [set-type include-ids? id-set]}]
   (let [conn (connection)]
-    (->> (ids :set-type set-type)
+    (->> (or id-set (ids :set-type set-type))
          (map (if include-ids?
                 #(assoc (instance-by-id conn %) :id %)
                 #(instance-by-id conn %))))))
