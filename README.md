@@ -17,6 +17,19 @@ repeated.
 
 This library is designed to make this process less painful.
 
+Features:
+
+* Create training/test split datasets.
+* Store dataset in ElasticSearch with any data structure.
+* Supports stratification by class label.
+* Sort datasets by a split ratio, or by folds (useful for cross-fold validation).
+* Provides dataset statistics, per class spreadsheet dataset creation and other
+  metrics.
+* Stores optional class label and ID (unique created by ElasticSearch if
+desired).
+* Integrates with
+  the [machine learning framework](https://github.com/plandes/clj-ml-model).
+
 
 ## Contents
 
@@ -25,8 +38,8 @@ This library is designed to make this process less painful.
 * [Setup](#setup)
 * [Example](#example)
 * [Usage](#usage)
-  * [Write a Corpus Access Namespace](#write a corpus access namespace)
-  * [Using on the REPL](#using on the repl)
+  * [Write a Corpus Access Namespace](#write-a-corpus-access-namespace)
+  * [Using on the REPL](#using-on-the-repl)
 * [Building](#building)
 * [Changelog](#changelog)
 * [License](#license)

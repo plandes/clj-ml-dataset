@@ -6,12 +6,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+
+
+## [0.0.8] - 2017-04-27
 ### Added
 - Changelog
 - Configure ES mappings.
+- Stratification by class label.
 
 ### Changed
 - Moved to lein-git-version 1.2.7
+- Fixed double properties level mapping in ES.
+- More robust dataset spreadsheet creation.
 
 
 ## [0.0.7] - 2016-12-13
@@ -23,5 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Dependency versions
 
 
-[Unreleased]: https://github.com/plandes/clj-nlp-parse/compare/v0.0.6...HEAD
-[0.0.6]: https://github.com/plandes/clj-nlp-parse/compare/v0.0.6...v0.0.7
+[Unreleased]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.7...v0.0.8
+[0.0.7]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.6...v0.0.7
+[0.0.6]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.5...v0.0.6
