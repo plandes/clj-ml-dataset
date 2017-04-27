@@ -18,10 +18,10 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
 
                  ;; command line
-                 [com.zensols.tools/actioncli "0.0.15"]
+                 [com.zensols.tools/actioncli "0.0.16"]
 
                  ;; write dataset report
-                 [com.zensols.tools/misc "snapshot"]
+                 [com.zensols.tools/misc "0.0.5"]
 
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]
