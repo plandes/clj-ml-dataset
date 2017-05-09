@@ -422,9 +422,9 @@ Example
   ([id instance class-label]
    (put-instance id instance class-label nil))
   ([id instance class-label set-type]
-   (log/infof "loading instance (%s): %s => <%s>"
+   (log/debugf "loading instance (%s): %s => <%s>"
                id class-label (zs/trunc instance))
-   (log/debugf "instance: %s" instance)
+   (log/tracef "instance: %s" instance)
    (use-connection
      (with-context [instance-context]
        (let [doc (merge {class-label-key class-label instance-key instance}
@@ -437,10 +437,12 @@ Example
 
 (defn instances-load
   "Parse and load the dataset in the DB."
-  []
+  [& {:keys [recreate-index]
+      :or {recreate-index true}}]
   (use-connection
     (with-context [instance-context]
-      (es/recreate-index)
+      (if recreate-index
+        (es/recreate-index))
       ;; Elasticsearch queues inserts so avoid the user having to invoke
       ;; `divide-by-preset` since all records might not clear by the time
       ;; they're indexed and added to the stats index
