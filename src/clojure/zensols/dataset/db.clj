@@ -507,7 +507,7 @@ Example
                          (take max-instances)
                          (map (case type
                                 document #(-> % :doc)
-                                ids #(-> % :id Integer/parseInt)))
+                                ids :id))
                          (array-map class-label))))
              (into {})
              doall)))))
