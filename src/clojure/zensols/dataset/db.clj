@@ -437,11 +437,11 @@ Example
 
 (defn instances-load
   "Parse and load the dataset in the DB."
-  [& {:keys [recreate-index]
-      :or {recreate-index true}}]
+  [& {:keys [recreate-index?]
+      :or {recreate-index? true}}]
   (use-connection
     (with-context [instance-context]
-      (if recreate-index
+      (if recreate-index?
         (es/recreate-index))
       ;; Elasticsearch queues inserts so avoid the user having to invoke
       ;; `divide-by-preset` since all records might not clear by the time
