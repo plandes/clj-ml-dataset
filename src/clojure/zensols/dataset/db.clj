@@ -81,7 +81,10 @@ load utterance in the DB; this function takes the following forms:
         call [[divide-by-preset]] for the first invocation of [[instances-load]]
 
   * **:url** the URL to the DB (defaults to `http://localhost:9200`)
-  * **mapping-type** map type name (see ES docs)
+  * **:mapping-type** map type name (see ES docs)
+  * **:cache-inst** an atom used to cache instances by ID; if given this
+    retrieves instances from the in memory map stored in the atom; otherwise it
+    goes to ElasticSearch each time
 
 Example
 -------
@@ -94,7 +97,8 @@ Example
     (elasticsearch-connection \"tmp\" :create-instances-fn load-fn)))
 ```"
   [index-name &
-   {:keys [create-instances-fn population-use set-type url mapping-type-def]
+   {:keys [create-instances-fn population-use set-type url mapping-type-def
+           cache-inst]
     :or {create-instances-fn identity
          population-use 1.0
          set-type :train
@@ -104,6 +108,7 @@ Example
          url "http://localhost:9200"}}]
   {:index-name index-name
    :ids-inst (atom nil)
+   :cache-inst cache-inst
    :default-set-type (atom set-type)
    :population-use (atom population-use)
    :instance-context (es/create-context
@@ -143,6 +148,7 @@ Example
   `(let [conn# (connection)
          ~'index-name (:index-name conn#)
          ~'ids-inst (:ids-inst conn#)
+         ~'cache-inst (:cache-inst conn#)
          ~'instance-context (:instance-context conn#)
          ~'stats-context (:stats-context conn#)
          ~'population-use (:population-use conn#)
@@ -195,7 +201,14 @@ Example
   ([id]
    (use-connection
      (with-context [instance-context]
-       (->> (es/document-by-id id))))))
+       (if cache-inst
+         (letfn [(sfn [data]
+                   (if-not (contains? data id)
+                     (assoc data id (es/document-by-id id))
+                     data))]
+           (swap! cache-inst sfn)
+           (get @cache-inst id))
+         (es/document-by-id id))))))
 
 (defn clear
   "Clear the in memory instance data.  If key `:wipe-persistent?` is `true` all
