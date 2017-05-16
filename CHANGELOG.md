@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.0.9] - 2017-05-16
+### Added
+- Cache instances feature.
+
+### Changed
+- No longer require integer IDs during loading.
+
 
 ## [0.0.8] - 2017-04-27
 ### Added
@@ -29,7 +36,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Dependency versions
 
 
-[Unreleased]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.9...HEAD
+[0.0.9]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.5...v0.0.6
