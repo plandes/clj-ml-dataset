@@ -649,8 +649,9 @@ Example
                       header-inst (first insts)]
                   (->> insts
                        (map (fn [{:keys [class-label id instance]}]
-                              (->> (instance-fn instance)
-                                   (concat fields [class-label id]))))
+                              (let [id (or id "")]
+                                (->> (instance-fn instance)
+                                     (concat fields [class-label id])))))
                        ((if header?
                           #(cons (concat col-names
                                          ["Label" "Id"]
