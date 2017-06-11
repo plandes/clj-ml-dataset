@@ -468,8 +468,9 @@ Example
           (when (or (not (empty? train)) (not (empty? test)))
             ;; almost never get to hear since ES is still loading and will
             ;; return no results
-            (log/infof "divide: %d: train: %d, test: %d"
-                       (+ (count train) (count test)))
+            (log/infof "divide: %f: train: %d, test: %d"
+                       (double (/ (count train) (+ (count test) (count train))))
+                       (count train) (count test))
             (reset! ids-inst {:train-test {:train (lazy-seq train)
                                            :test (lazy-seq test)}})
             (persist-id-state @ids-inst)))))))
