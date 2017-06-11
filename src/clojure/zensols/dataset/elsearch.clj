@@ -67,7 +67,8 @@ probably want use the more client friendly [[zensols.dataset.db]]."
   "Create a new Elasticsearch index."
   []
   (let [{:keys [properties index-name mapping-type-defs settings]} (context)]
-    (log/infof "mapping '%s': <%s>" index-name mapping-type-defs)
+    (log/infof "creating index: index-name: '%s', mapping: <%s>"
+               index-name mapping-type-defs)
     (-> (apply esi/create (concat [(connection) index-name :mappings mapping-type-defs]
                                    (if settings [:settings settings]))))))
 
@@ -113,6 +114,7 @@ probably want use the more client friendly [[zensols.dataset.db]]."
    (let [{:keys [index-name mapping-type]} (context)]
      (log/debugf "adding %s:%s:%s <%s>"
                  index-name mapping-type id (zs/trunc doc))
+     (log/tracef "connection: %s" (pr-str (connection)))
      (->> (if id
             (esd/put (connection) index-name mapping-type id doc)
             (esd/create (connection) index-name mapping-type doc))
