@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+### Changed
+- Logging bug fixes.
+- Guard against nil IDs.
+
 
 ## [0.0.9] - 2017-05-16
 ### Added
