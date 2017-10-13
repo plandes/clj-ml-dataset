@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
 ## [Unreleased]
+### Changed
+- Fix bug where exporting the database results in characters spanning multiple
+  columns in the output (csv) file.
 
 ## [0.0.10] - 2017-06-10
 ### Changed
