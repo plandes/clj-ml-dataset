@@ -652,6 +652,7 @@ Example
                        (map (fn [{:keys [class-label id instance]}]
                               (let [id (or id "")]
                                 (->> (instance-fn instance)
+                                     list
                                      (concat fields [class-label id])))))
                        ((if header?
                           #(cons (concat col-names
