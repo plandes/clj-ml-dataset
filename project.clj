@@ -18,7 +18,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
 
                  ;; command line
-                 [com.zensols.tools/actioncli "0.0.19"]
+                 [com.zensols.tools/actioncli "0.0.20"]
 
                  ;; write dataset report
                  [com.zensols.tools/misc "0.0.5"]
