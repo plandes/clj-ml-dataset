@@ -6,7 +6,7 @@
   [travis-badge]: https://travis-ci.org/plandes/clj-ml-dataset.svg?branch=master
 
 This is a small simple library that automates the parsing and caching of the
-parsed utterances in [Elasticsearch](https://www.elastic.co).
+parsed utterances in [Elasticsearch].
 
 This library can be used to create an dataset but was written with natural
 language processing problems in mind.  When creating machine learning models
@@ -31,18 +31,23 @@ desired).
   the [machine learning framework](https://github.com/plandes/clj-ml-model).
 
 
-## Contents
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+## Table of Contents
 
-* [Obtaining](#obtaining)
-* [Documentation](#documentation)
-* [Setup](#setup)
-* [Example](#example)
-* [Usage](#usage)
-  * [Write a Corpus Access Namespace](#write-a-corpus-access-namespace)
-  * [Using on the REPL](#using-on-the-repl)
-* [Building](#building)
-* [Changelog](#changelog)
-* [License](#license)
+- [Obtaining](#obtaining)
+- [Documentation](#documentation)
+- [Setup](#setup)
+- [Example](#example)
+- [Usage](#usage)
+    - [Write a Corpus Access Namespace](#write-a-corpus-access-namespace)
+    - [Using on the REPL](#using-on-the-repl)
+- [File System Based Data Store](#file-system-based-data-store)
+- [Future Enhancements](#future-enhancements)
+- [Building](#building)
+- [Changelog](#changelog)
+- [License](#license)
+
+<!-- markdown-toc end -->
 
 
 ## Obtaining
@@ -59,7 +64,10 @@ API [documentation](https://plandes.github.io/clj-ml-dataset/codox/index.html).
 
 ## Setup
 
-If you don't have an Elasticsearch instance handy I recommend you use the
+**Note**: [ElasticSearch] is no longer necessary as there's a
+new [file sysetm](#file-system-based-data-store) based data store.
+
+If you don't have an ElasticSearch instance handy I recommend you use the
 docker image and SSH tunnel the port so you don't have to configure that
 separately.  Do do this:
 
@@ -88,6 +96,7 @@ First create a namespace to use as your *database* library.
 
 
 ### Write a Corpus Access Namespace
+
 ```clojure
 (ns zensols.example.anon-db
   (:require [clojure.java.io :as io]
@@ -121,7 +130,10 @@ First create a namespace to use as your *database* library.
     (db/instances)))
 ```
 
+All see the [test case](test/zensols/dataset/thaw_test.clj).
+
 ### Using on the REPL
+
 Now you only need to load the corpora once, then you can get it back and it
 caches in memory on the first read access:
 ```clojure
@@ -138,6 +150,27 @@ user> (count (anons))
 25
 ```
 
+## File System Based Data Store
+
+This library now has a way to unpersist data from JSON text in
+the
+[zensols.dataset.thaw](https://plandes.github.io/clj-ml-dataset/codox/zensols.dataset.thaw.html) namespace.
+This can either be program/hand generated or you can "serialize" this to disk
+using [`freeze-dataset`](https://plandes.github.io/clj-ml-dataset/codox/zensols.dataset.db.html#freeze-dataset).
+
+
+## Future Enhancements
+
+What's nneded is a all
+the
+[zensols.dataset.db/*](https://plandes.github.io/clj-ml-dataset/codox/zensols.dataset.db.html) functions
+to be multi-method so you don't need to switch between namespaces to get
+different data sources (i.e. [ElasticSearch] vs file system).  It's possible to
+refactor these namespaces so that the function is only written once in some
+places (i.e. `instance-by-id`) and multi-methods for the rest based on
+connection type.
+
+
 ## Building
 
 To build from source, do the folling:
@@ -145,7 +178,7 @@ To build from source, do the folling:
 - Install [Leiningen](http://leiningen.org) (this is just a script)
 - Install [GNU make](https://www.gnu.org/software/make/)
 - Install [Git](https://git-scm.com)
-- Download the source: `git clone https://github.com/clj-mkproj && cd clj-mkproj`
+- Download the source: `git clone --recurse-submodules https://github.com/plandes/clj-ml-dataset && cd clj-ml-dataset`
 - Download the make include files:
 ```bash
 mkdir ../clj-zenbuild && wget -O - https://api.github.com/repos/plandes/clj-zenbuild/tarball | tar zxfv - -C ../clj-zenbuild --strip-components 1
@@ -162,18 +195,17 @@ An extensive changelog is available [here](CHANGELOG.md).
 
 ## License
 
-Copyright © 2016, 2017 Paul Landes
+MIT License
 
-Apache License version 2.0
+Copyright (c) 2016 - 2018 Paul Landes
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-[http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+<!-- links -->
+[Elasticsearch]: https://www.elastic.co
+

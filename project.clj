@@ -1,8 +1,8 @@
 (defproject com.zensols.ml/dataset "0.1.0-SNAPSHOT"
   :description "Generate, split into folds or train/test and cache a dataset"
   :url "https://github.com/plandes/clj-nlp-annotation"
-  :license {:name "Apache License version 2.0"
-            :url "https://www.apache.org/licenses/LICENSE-2.0"
+  :license {:name "MIT"
+            :url "https://opensource.org/licenses/MIT"
             :distribution :repo}
   :plugins [[lein-codox "0.10.3"]
             [org.clojars.cvillecsteele/lein-git-version "1.2.7"]]
@@ -18,14 +18,18 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
 
                  ;; command line
-                 [com.zensols.tools/actioncli "0.0.20"]
+                 [com.zensols.tools/actioncli "0.0.27"]
 
                  ;; write dataset report
                  [com.zensols.tools/misc "0.0.5"]
 
+                 ;; json
+                 [org.clojure/data.json "0.2.6"]
+
                  ;; elastic search
                  [clojurewerkz/elastisch "2.2.2"]]
-  :profiles {:appassem {:aot :all}
+  :profiles {:1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
+             :appassem {:aot :all}
              :snapshot {:git-version {:version-cmd "echo -snapshot"}}
              :dev
              {:jvm-opts

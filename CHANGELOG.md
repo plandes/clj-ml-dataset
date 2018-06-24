@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [0.0.12] - 2018-06-24
+### Added
+- File system based data source `zensols.dataset.thaw` namespace.
+- Clojure 1.9 profile.
+- Unit test case.
+- Contributions file.
+
+### Changed
+- Moved to MIT license.
+- Move to zenbuild submodule type build.
+
+
 ## [0.0.11] - 2017-10-17
 ### Changed
 - Fix bug where exporting the database results in characters spanning multiple
@@ -47,7 +60,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Dependency versions
 
 
-[Unreleased]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.11...HEAD
+[Unreleased]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.12...HEAD
+[0.0.12]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/plandes/clj-ml-dataset/compare/v0.0.8...v0.0.9

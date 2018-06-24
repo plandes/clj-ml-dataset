@@ -26,6 +26,7 @@ See [[ids]] for more information."
       :author "Paul Landes"}
     zensols.dataset.db
   (:require [clojure.java.io :as io]
+            [clojure.data.json :as json]
             [clojure.tools.logging :as log]
             [clojure.string :as s]
             [clojure.set :refer (rename-keys)]
@@ -38,6 +39,8 @@ See [[ids]] for more information."
             [zensols.dataset.elsearch :refer (with-context) :as es]))
 
 (def instance-key :instance)
+
+(def id-key :id)
 
 (def class-label-key :class-label)
 
@@ -338,7 +341,7 @@ Example
   (let [conn (connection)]
     (->> (or id-set (ids :set-type set-type))
          (map (if include-ids?
-                #(assoc (instance-by-id conn %) :id %)
+                #(assoc (instance-by-id conn %) id-key %)
                 #(instance-by-id conn %))))))
 
 (defn stats
@@ -521,7 +524,7 @@ Example
                          (take max-instances)
                          (map (case type
                                 document #(-> % :doc)
-                                ids :id))
+                                ids id-key))
                          (array-map class-label))))
              (into {})
              doall)))))
@@ -677,4 +680,38 @@ Example
                   "Counts By Label" (-> (rows-counts-by-class-label)
                                         ss/headerize)}))
               (ss/autosize-columns)
-              (excel/save output-file)))))))
+              (excel/save output-file))))))
+  (log/infof "wrote dataset file: %s" output-file))
+
+(defn freeze-file []
+  (use-connection
+    (->> (format "%s-freeze.json" index-name)
+         (res/resource-path :analysis-report))))
+
+(defn freeze-dataset-to-writer
+  "Distille the current data set (data and test/train splits) in **writer** to
+  be later restored with[[zensols.dataset.thaw/taw-connection]]."
+  [writer & {:keys [id-key set-type-key]}]
+  (with-connection (connection)
+    (->> [:test :train]
+         (mapcat (fn [set-type]
+                   (->> (ids :set-type set-type)
+                        (map #(assoc (instance-by-id %)
+                                     id-key %
+                                     set-type-key set-type)))))
+         (map (fn [entry]
+                (json/write entry writer)
+                (.newLine writer)))
+         doall))
+  writer)
+
+(defn freeze-dataset
+  "Distille the current data set (data and test/train splits) in a
+  **output-file**.  See [[freeze-dataset-to-writer]]."
+  [& {:keys [output-file id-key set-type-key]
+      :or {set-type-key :set-type}}]
+  (let [output-file (or output-file (freeze-file))]
+    (with-open [writer (io/writer output-file)]
+      (freeze-dataset-to-writer writer :set-type-key set-type-key))
+    (log/infof "wrote freeze dataset file: %s" output-file)
+    output-file))
