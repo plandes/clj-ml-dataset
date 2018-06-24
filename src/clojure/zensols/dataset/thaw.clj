@@ -134,7 +134,7 @@ by any program since it's just a text file with the following keys:
     (cond id-set (->> id-set (map instance-by-id) doall)
           (or (= set-type :test) (= set-type :train))
           (->> by-set-type set-type)
-          (= set-type :train-test) by-id
+          (= set-type :train-test) (vals by-id)
           true (-> (format "No defined set type: %s" set-type)
                    (ex-info {:set-type set-type})
                    throw))))

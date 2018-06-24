@@ -32,9 +32,18 @@
     (is (= 2 (->> (anons :set-type :train) count)))
     (is (= 1 (->> (anons :set-type :test) count)))))
 
+(deftest anon-ids []
+  (testing "Annotation ids"
+    (is (= #{"588" "232" "427"} (->> (anons) (map :id) set)))
+    (is (= #{"588" "232"} (->> (anons :set-type :train) (map :id) set)))
+    (is (= #{"427"} (->> (anons :set-type :test) (map :id) set)))))
+
 (deftest anon-data []
   (testing "Annotation counts"
-    (let [anon (anon-by-id "232")]
+    (let [anon (anon-by-id "232")
+          train-anon (first (anons :set-type :train))]
       (is (= "calendar" (-> anon :class-label)))
       (is (= "232" (-> anon :id)))
-      (is (= 0 (-> anon :instance :panon :sentiment))))))
+      (is (= 0 (-> anon :instance :panon :sentiment)))
+      (is (= java.lang.Long (->>  train-anon :instance :panon :sentiment type))))))
+

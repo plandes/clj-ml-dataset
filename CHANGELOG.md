@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Clojure 1.9 profile.
 - Unit test case.
 - Contributions file.
+- Ability to filter by key in 
 
 ### Changed
 - Moved to MIT license.
-- Move to zenbuild submodule type build.
+- Move to zenbuild submodule based build.
+- Fix cross train/test stratification by class shuffle.
 
 
 ## [0.0.11] - 2017-10-17

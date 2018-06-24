@@ -43,6 +43,7 @@ desired).
     - [Using on the REPL](#using-on-the-repl)
 - [File System Based Data Store](#file-system-based-data-store)
 - [Future Enhancements](#future-enhancements)
+- [Known Bugs](#known-bugs)
 - [Building](#building)
 - [Changelog](#changelog)
 - [License](#license)
@@ -130,7 +131,8 @@ First create a namespace to use as your *database* library.
     (db/instances)))
 ```
 
-All see the [test case](test/zensols/dataset/thaw_test.clj).
+Also see the [test case](test/zensols/dataset/thaw_test.clj).
+
 
 ### Using on the REPL
 
@@ -156,7 +158,10 @@ This library now has a way to unpersist data from JSON text in
 the
 [zensols.dataset.thaw](https://plandes.github.io/clj-ml-dataset/codox/zensols.dataset.thaw.html) namespace.
 This can either be program/hand generated or you can "serialize" this to disk
-using [`freeze-dataset`](https://plandes.github.io/clj-ml-dataset/codox/zensols.dataset.db.html#freeze-dataset).
+using
+[`freeze-dataset`](https://plandes.github.io/clj-ml-dataset/codox/zensols.dataset.db.html#freeze-dataset).
+
+See the [test case](test/zensols/dataset/thaw_test.clj).
 
 
 ## Future Enhancements
@@ -179,13 +184,6 @@ To build from source, do the folling:
 - Install [GNU make](https://www.gnu.org/software/make/)
 - Install [Git](https://git-scm.com)
 - Download the source: `git clone --recurse-submodules https://github.com/plandes/clj-ml-dataset && cd clj-ml-dataset`
-- Download the make include files:
-```bash
-mkdir ../clj-zenbuild && wget -O - https://api.github.com/repos/plandes/clj-zenbuild/tarball | tar zxfv - -C ../clj-zenbuild --strip-components 1
-```
-- Build the distribution binaries: `make dist`
-
-Note that you can also build a single jar file with all the dependencies with: `make uber`
 
 
 ## Changelog
@@ -208,4 +206,3 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 <!-- links -->
 [Elasticsearch]: https://www.elastic.co
-

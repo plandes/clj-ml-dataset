@@ -497,14 +497,10 @@ Example
   Keys
   ----
   * **:max-instances** the maximum number of instances per class
-  * **:type* the data to grab, which is one of the following symbols:
-    * **ids** returns only IDs (not the document data)
-    * **document** returns the document data (`:class-label` and `:instance` keys)
   * **:seed** if given, seed the random number generator, otherwise don't
   return random documents"
   [& {:keys [max-instances type seed]
-      :or {max-instances Integer/MAX_VALUE
-           type 'document}}]
+      :or {max-instances Integer/MAX_VALUE}}]
   (use-connection
     (with-context [instance-context]
       (letfn ([query [class-label]
@@ -522,9 +518,7 @@ Example
                     (->> (query class-label)
                          es/search
                          (take max-instances)
-                         (map (case type
-                                document #(-> % :doc)
-                                ids id-key))
+                         (map id-key)
                          (array-map class-label))))
              (into {})
              doall)))))
@@ -539,11 +533,13 @@ Example
   * **:shuffle?** if `true` then shuffle the set before partitioning, otherwise
   just update the *demarcation* boundary"
   [train-ratio & {:keys [shuffle? ids
-                         max-instances]
+                         max-instances
+                         filter-fn]
                   :or {shuffle? true
                        max-instances Integer/MAX_VALUE}}]
   (use-connection
     (let [ids (->> (or ids (db-ids))
+                   ((if filter-fn #(filter filter-fn %) identity))
                    ((if shuffle? shuffle identity))
                    (take max-instances))
           sz (count ids)
@@ -565,21 +561,23 @@ Example
   (use-connection
     (with-context [instance-context]
       (let [opts (concat opts [:type 'ids])
-            {:keys [shuffle?] :or {shuffle? true}} (apply hash-map opts)]
+            {:keys [shuffle? filter-fn]
+             :or {shuffle? true
+                  filter-fn identity}} (apply hash-map opts)]
         (->> opts
              (apply instances-by-class-label)
              vals
+             (map #(filter filter-fn %))
+             (remove empty?)
+             ((if shuffle?
+                #(map shuffle %)
+                identity))
              (reduce (fn [{:keys [train test]} ids]
                        (let [sz (count ids)
                              train-count (* train-ratio sz)]
                          {:train (concat train (take train-count ids))
                           :test (concat test (drop train-count ids))}))
                      {})
-             ((if shuffle?
-                (fn [{:keys [test train]}]
-                  {:test (shuffle test)
-                   :train (shuffle train)})
-                identity))
              (array-map :train-test)
              (reset! ids-inst)
              persist-id-state))
@@ -600,6 +598,7 @@ Example
       *uneven* each test/training set has an uneven distribution by class label
   * **:shuffle?** if `true` then shuffle the set before partitioning, otherwise
   just update the *demarcation* boundary
+  * **:filter-fn** if given a filter function that takes a key as input
   * **:max-instances** the maximum number of instances per class
   * **:seed** if given, seed the random number generator, otherwise don't
   return random documents"
@@ -691,7 +690,7 @@ Example
 (defn freeze-dataset-to-writer
   "Distille the current data set (data and test/train splits) in **writer** to
   be later restored with[[zensols.dataset.thaw/taw-connection]]."
-  [writer & {:keys [id-key set-type-key]}]
+  [writer & {:keys [set-type-key]}]
   (with-connection (connection)
     (->> [:test :train]
          (mapcat (fn [set-type]
