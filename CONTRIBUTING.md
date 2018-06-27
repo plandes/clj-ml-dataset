@@ -39,7 +39,7 @@ would also make a huge difference.
   and description in grammatically correct, complete sentences.
 
 
-[1]: https://github.com/plandes/clj-ml-dataset/cider/issues
+[1]: https://github.com/plandes/clj-ml-dataset/issues
 [2]: http://gun.io/blog/how-to-github-fork-branch-and-pull-request
 [3]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
 [4]: https://help.github.com/articles/using-pull-requests
